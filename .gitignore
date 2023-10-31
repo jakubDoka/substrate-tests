@@ -9,3 +9,6 @@
 # direnv files
 .envrc
 .direnv
+
+# we need a tmp folder for temporary stuff
+scripts/.tmp
