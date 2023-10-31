@@ -28,7 +28,7 @@ pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
 		ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness,
-		StorageInfo,
+		ReservableCurrency, StorageInfo,
 	},
 	weights::{
 		constants::{
@@ -47,7 +47,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
-pub use pallet_template;
+pub use pallet_sudo_authorities;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -269,9 +269,18 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// Configure the pallet-template in pallets/template.
-impl pallet_template::Config for Runtime {
+impl pallet_sudo_authorities::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_multisig::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
+	type DepositBase = ConstU128<1>;
+	type DepositFactor = ConstU128<1>;
+	type MaxSignatories = ConstU32<15>;
+	type Currency = Balances;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -284,8 +293,8 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		SudoAuthorities: pallet_sudo_authorities,
+		Multisig: pallet_multisig,
 	}
 );
 
@@ -333,7 +342,6 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
 		[pallet_sudo, Sudo]
-		[pallet_template, TemplateModule]
 	);
 }
 
