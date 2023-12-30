@@ -34,6 +34,7 @@ start_rpc() {
     --rpc-external --rpc-methods safe \
     --rpc-cors all \
     --allow-private-ip \
+    --state-pruning archive \
     --name "rpc_node"
 }
 
