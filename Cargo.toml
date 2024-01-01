@@ -4,5 +4,6 @@ members = [
     "pallets/sudo-authorities",
     "runtime",
 ]
+resolver = "2"
 [profile.release]
 panic = "unwind"
