@@ -20,7 +20,7 @@ cargo build --release
 mv ./target/release/node-template $ssnode
 
 cd "$script_dir"
-docker build -t $image .
+docker build -t $image -f move.Dockerfile .
 cd "${script_dir}/.."
 
 $ssnode build-spec --chain=$spec --raw --disable-default-bootnode > "$spec_raw"
