@@ -11,7 +11,7 @@ cargo build --release
 mv ./target/release/node-template $ssnode
 
 cd "$script_dir"
-docker build -t $image .
+docker build -t $image -f move.Dockerfile .
 cd "${script_dir}/.."
 
 docker rm -f ghe0_node1 ghe0_node2 ghe0_node3 ghe0_node4 ghe0_node5 ghe0_rpc
