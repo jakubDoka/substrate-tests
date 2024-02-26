@@ -29,13 +29,13 @@ for node_name in node1 node2 node3 node4 node5; do
   if [ $? -ne 0 ]; then
     docker start $node_name
   fi
-  docker exec -it $node_name $NODE_BIN key insert \
+  docker exec -it $node_name key insert \
     --base-path $VOLUME \
     --chain "${CHAIN_SPEC}" \
     --scheme Sr25519 \
     --suri "$SEED" \
     --key-type aura
-  docker exec -it $node_name $NODE_BIN key insert \
+  docker exec -it $node_name key insert \
     --base-path $VOLUME \
     --chain "${CHAIN_SPEC}" \
     --scheme Ed25519 \
@@ -44,13 +44,15 @@ for node_name in node1 node2 node3 node4 node5; do
 done
 
 docker run -d --name rpc \
-  $IMAGE $NODE_BIN \
+  -p ${RPC_PORT}:${RPC_PORT} \
+  $IMAGE \
+  $NODE_BIN \
   --name rpc \
   --base-path $VOLUME \
-  --chain "${CHAIN_SPEC}" \
-  --rpc-port PORT \
+  --chain ${CHAIN_SPEC} \
+  --rpc-port ${RPC_PORT} \
+  --port ${PORT} \
   --rpc-cors all \
   --rpc-external \
-  --rpc-methods safe \
   --allow-private-ip \
   --state-pruning archive

@@ -13,6 +13,7 @@ export IMAGE="chain:latest"
 export CHAIN="local"
 # dir of the persistent volume of the node container,
 # chain spec and state will be in this dir.
+# base_path
 export VOLUME="/data"
 export CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
 # where the node binary is located on the node container
