@@ -1,10 +1,36 @@
-# Compile Docker image for Macs
+# Compile Docker image
 
 To compile the chain in docker on mac ensure you have docker installed, then go to the root of this repo, and after that run following command:
 
 ```sh
-docker build -t chain -f scripts/build.Dockerfile .
+source ./scripts/variables.sh &&
+docker build -t chain:latest -f scripts/build.Dockerfile . \
+    --build-arg IMAGE=$IMAGE \
+    --build-arg CHAIN=$CHAIN \
+    --build-arg VOLUME=$VOLUME \
+    --build-arg CHAIN_SPEC=$CHAIN_SPEC \
+    --build-arg NODE_BIN=$NODE_BIN
 ```
+
+Note: you can also omit all the --build-args and the source command, the Dockerfile will use it's default values.
+
+After building the image, you can run a number of nodes:
+```sh
+./scripts/test_network.sh
+```
+
+They will be running in the background, check them with:
+```sh
+docker ps
+```
+
+# Updating chain specs
+After doing the changes on the runtime, you can generate another spec with the following script:
+```sh
+./scripts/update_spec.sh
+```
+
+This script will generate a new spec and update all nodes. The spec file is located at "/data/${CHAIN}_spec_raw.json". The /data dir is a persistent volume.
 
 # Substrate Node Template
 

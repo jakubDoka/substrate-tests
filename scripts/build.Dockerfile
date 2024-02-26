@@ -1,25 +1,40 @@
-# First stage builds the chain node
-FROM ubuntu:latest AS builder
+# This is the build stage for Polkadot. Here we create the binary in a temporary image.
+FROM docker.io/paritytech/ci-linux:production as builder
+WORKDIR /polkadot
 
-RUN apt-get update\
- && apt-get install -y git clang curl libssl-dev llvm libudev-dev protobuf-compiler make
+# Args with default values
+ARG IMAGE=chain:latest
+ARG CHAIN=local
+ARG VOLUME=/data
+# ARG CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
+ARG NODE_BIN=/opt/node-template
 
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup default stable\
- && rustup install 1.65.0\
- && rustup install nightly-2024-01-31\
- && rustup target add wasm32-unknown-unknown --toolchain stable\
- && rustup target add wasm32-unknown-unknown --toolchain nightly-2024-01-31
+COPY . /polkadot
 
-COPY . /workspace
-# Takes around 10 minutes to build
-RUN cd /workspace && cargo +stable build --release
+RUN cargo build --locked --release
 
-# Final stage is the chain node
-FROM ubuntu:latest
+# This is the 2nd stage: a very small image where we copy the Polkadot binary."
+# FROM docker.io/parity/base-bin:latest
+FROM ubuntu:22.04
 
-COPY --from=builder /workspace/target/release/node-template /opt/node-template
-COPY scripts/docker_start.sh /opt/docker_start.sh
-CMD ["/bin/bash", "/opt/docker_start.sh"]
+# Re-sourcing args from previous image
+ARG IMAGE=chain:latest
+ARG CHAIN=local
+ARG VOLUME=/data
+# ARG CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
+ARG NODE_BIN=/opt/node-template
 
+COPY --from=builder /polkadot/target/release/node-template ${NODE_BIN}
+
+EXPOSE 30333 9933 9944 9615
+
+# /data is the volume where persistent data is stored,
+# such as the chain state, and the chain specification file (local_spec_raw.json)
+RUN mkdir ${VOLUME}
+RUN ${NODE_BIN} build-spec \
+  --raw \
+  --disable-default-bootnode \
+  > "${VOLUME}/${CHAIN}_spec_raw.json"
+VOLUME ${VOLUME}
+
+CMD ["/bin/bash"]
