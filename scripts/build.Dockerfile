@@ -2,12 +2,16 @@
 FROM docker.io/paritytech/ci-linux:production as builder
 WORKDIR /polkadot
 
-# Args with default values
+# Build time variables with default values
+ARG NAME=node
 ARG IMAGE=chain:latest
 ARG CHAIN=local
 ARG VOLUME=/data
-# ARG CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
 ARG NODE_BIN=/opt/node-template
+
+# Runtime variables, used by the command `docker run`
+# this default value can be replaced by using `--env` flag
+ENV SURI="narrow use math topple stage produce top satoshi rapid satisfy half naive"
 
 COPY . /polkadot
 
@@ -17,24 +21,49 @@ RUN cargo build --locked --release
 # FROM docker.io/parity/base-bin:latest
 FROM ubuntu:22.04
 
-# Re-sourcing args from previous image
+# Re-sourcing args from previous builder image
+ARG NAME=node
 ARG IMAGE=chain:latest
 ARG CHAIN=local
 ARG VOLUME=/data
-# ARG CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
 ARG NODE_BIN=/opt/node-template
 
-COPY --from=builder /polkadot/target/release/node-template ${NODE_BIN}
+# Resourcing envs from previous builder image
+ENV SURI="narrow use math topple stage produce top satoshi rapid satisfy half naive"
 
-EXPOSE 30333 9933 9944 9615
+RUN mkdir ${VOLUME}
+COPY --from=builder /polkadot/target/release/node-template ${NODE_BIN}
+COPY --from=builder /polkadot/scripts/${CHAIN}_spec.json "${VOLUME}/${CHAIN}_spec.json"
 
 # /data is the volume where persistent data is stored,
 # such as the chain state, and the chain specification file (local_spec_raw.json)
-RUN mkdir ${VOLUME}
-RUN ${NODE_BIN} build-spec \
-  --raw \
-  --disable-default-bootnode \
-  > "${VOLUME}/${CHAIN}_spec_raw.json"
+# RUN ${NODE_BIN} build-spec \
+#   --raw \
+#   --chain "${VOLUME}/tmp.json" \
+#   --disable-default-bootnode \
+#   > "${VOLUME}/${CHAIN}_spec_raw.json"
+
+# generate aura and grandpa keys
+RUN ${NODE_BIN} key insert \
+  --base-path ${VOLUME} \
+  --chain "${VOLUME}/${CHAIN}_spec.json" \
+  --scheme Sr25519 \
+  --suri "${SURI}" \
+  --key-type aura
+
+RUN ${NODE_BIN} key insert \
+  --base-path ${VOLUME} \
+  --chain "${VOLUME}/${CHAIN}_spec.json" \
+  --scheme Ed25519 \
+  --suri "${SURI}" \
+  --key-type gran
+
 VOLUME ${VOLUME}
+EXPOSE 30333 9933 9944 9615
+
+# /opt/node-template build-spec \
+#   --chain "/data/local_spec_raw.json" \
+#   --disable-default-bootnode \
+#   > "/data/local_spec.json"
 
 CMD ["/bin/bash"]

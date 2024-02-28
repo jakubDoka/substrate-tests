@@ -14,8 +14,9 @@ export CHAIN="local"
 # dir of the persistent volume of the node container,
 # chain spec and state will be in this dir.
 # base_path
+# default base_path is $HOME/.local/share/<CHAIN_NAME>
 export VOLUME="/data"
-export CHAIN_SPEC="${VOLUME}/${CHAIN}_spec_raw.json"
+export CHAIN_SPEC="${VOLUME}/${CHAIN}_spec.json"
 # where the node binary is located on the node container
 export NODE_BIN="/opt/node-template"
 # p2p port

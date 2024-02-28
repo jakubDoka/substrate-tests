@@ -6,11 +6,11 @@
 SCRIPTS_DIR="$(dirname "$(readlink -f "$0")")"
 source "$SCRIPTS_DIR/variables.sh"
 tmp="${SCRIPTS_DIR}/.tmp"
-spec_tmp="${tmp}/${CHAIN}_spec_raw.json"
+spec_tmp="${tmp}/${CHAIN}_spec.json"
 mkdir -p $tmp
 
 # generate the build-spec for the current chain
-target/release/node-template build-spec --chain=$CHAIN --raw --disable-default-bootnode > $spec_tmp
+target/release/node-template build-spec --chain=$CHAIN --disable-default-bootnode > $spec_tmp
 
 for node in node1 node2 node3 node4 node5 rpc; do
   # try to copy the build-spec file and move to the volume of the current node

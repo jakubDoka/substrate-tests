@@ -16,43 +16,38 @@ node5_seed="sing earth victory dove tag siege cereal embody scheme grant swear l
 # docker rm -f node1 node2 node3 node4 node5 rpc
 
 for node_name in node1 node2 node3 node4 node5; do
-  docker run -d --name $node_name \
+  seed_name="${node_name}_seed"
+  SURI=${!seed_name}
+
+  docker run \
+    --env SURI="$SURI" \
+    -d --name $node_name \
     $IMAGE $NODE_BIN \
     --name=$node_name \
     --base-path $VOLUME \
-    --chain "${CHAIN_SPEC}" \
+    --chain $CHAIN_SPEC \
     --validator \
     --port $PORT \
+    --rpc-port $RPC_PORT \
     --rpc-cors all \
     --allow-private-ip
-  # if there is an error, maybe the container is stopped, try to start it
+  # # if there is an error, maybe the container is stopped, try to start it
   if [ $? -ne 0 ]; then
     docker start $node_name
   fi
-  docker exec -it $node_name key insert \
-    --base-path $VOLUME \
-    --chain "${CHAIN_SPEC}" \
-    --scheme Sr25519 \
-    --suri "$SEED" \
-    --key-type aura
-  docker exec -it $node_name key insert \
-    --base-path $VOLUME \
-    --chain "${CHAIN_SPEC}" \
-    --scheme Ed25519 \
-    --suri "$SEED" \
-    --key-type gran
 done
 
-docker run -d --name rpc \
-  -p ${RPC_PORT}:${RPC_PORT} \
+docker run \
+  -d --name rpc \
+  -p $RPC_PORT:$RPC_PORT \
   $IMAGE \
   $NODE_BIN \
   --name rpc \
   --base-path $VOLUME \
-  --chain ${CHAIN_SPEC} \
-  --rpc-port ${RPC_PORT} \
-  --port ${PORT} \
+  --chain $CHAIN_SPEC \
+  --rpc-port $RPC_PORT \
   --rpc-cors all \
   --rpc-external \
+  --rpc-methods safe \
   --allow-private-ip \
   --state-pruning archive

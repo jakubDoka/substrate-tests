@@ -1,9 +1,26 @@
 [workspace]
+resolver = "2"
 members = [
     "node",
-    "pallets/sudo-authorities",
+    "pallets/*",
     "runtime",
 ]
-resolver = "2"
+
 [profile.release]
 panic = "unwind"
+
+[workspace.package]
+edition = "2021"
+authors = ["Foo"]
+repository = ""
+
+[workspace.dependencies]
+serde_json = { version = "1", default-features = false }
+log = "0.4"
+
+[workspace.lints]
+
+
+[profile.dev.build-override]
+opt-level = 3
+

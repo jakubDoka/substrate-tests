@@ -8,7 +8,6 @@ docker build -t chain:latest -f scripts/build.Dockerfile . \
     --build-arg IMAGE=$IMAGE \
     --build-arg CHAIN=$CHAIN \
     --build-arg VOLUME=$VOLUME \
-    --build-arg CHAIN_SPEC=$CHAIN_SPEC \
     --build-arg NODE_BIN=$NODE_BIN
 ```
 
