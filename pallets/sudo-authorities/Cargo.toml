@@ -1,35 +1,29 @@
 [package]
 name = "pallet-sudo-authorities"
 version = "0.0.1"
-
 description = "allows you to sudo change AURA and GRANDPA authorities"
 authors = ["gheorghe@gheo.tech"]
-
-edition.workspace = true
-publish = false
-
-[lints]
-workspace = true
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = [
+codec = { package = "parity-scale-codec", default-features = false, features = [
 	"derive",
 ] }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4", default-features = false, optional = true }
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4", default-features = false }
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4", default-features = false }
-pallet-aura = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "v1.8.0-rc4" }
-pallet-grandpa = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "v1.8.0-rc4" }
-sp-consensus-grandpa = { default-features = false, git ="https://github.com/paritytech/polkadot-sdk.git", tag = "v1.8.0-rc4" }
+scale-info = { default-features = false, features = ["derive"] }
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+pallet-aura = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+pallet-grandpa = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+sp-consensus-grandpa = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
 
 [dev-dependencies]
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4" }
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "v1.8.0-rc4" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.8.0" }
 
 [features]
 default = ["std"]
@@ -43,6 +37,7 @@ std = [
 	"sp-consensus-grandpa/std",
 	"pallet-aura/std"
 ]
+
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"pallet-grandpa/std",
@@ -53,4 +48,3 @@ try-runtime = [
 	"pallet-grandpa/std",
 	"pallet-aura/std"
 ]
-

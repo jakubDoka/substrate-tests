@@ -13,13 +13,15 @@ ARG NODE_BIN=/opt/node-template
 # this default value can be replaced by using `--env` flag
 ENV SURI="narrow use math topple stage produce top satoshi rapid satisfy half naive"
 
-COPY . /polkadot
-
-RUN cargo build --locked --release
+RUN mkdir -p /polkadot/target/release && mkdir -p /polkadot/scripts
+COPY ./target/release/node-template /polkadot/target/release
+COPY ./scripts/${CHAIN}_spec.json /polkadot/scripts
+# COPY . /polkadot
+# RUN cargo build --locked --release
 
 # This is the 2nd stage: a very small image where we copy the Polkadot binary."
 # FROM docker.io/parity/base-bin:latest
-FROM ubuntu:22.04
+FROM archlinux:latest
 
 # Re-sourcing args from previous builder image
 ARG NAME=node

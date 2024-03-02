@@ -1,11 +1,12 @@
-use {
-    node_template_runtime::{AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY},
-    sc_service::ChainType,
-    sp_consensus_aura::sr25519::AuthorityId as AuraId,
-    sp_consensus_grandpa::AuthorityId as GrandpaId,
-    sp_core::{sr25519, Pair, Public},
-    sp_runtime::traits::{IdentifyAccount, Verify},
+use node_template_runtime::{
+	AccountId, RuntimeGenesisConfig, Signature,
+	WASM_BINARY,
 };
+use sc_service::ChainType;
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_consensus_grandpa::AuthorityId as GrandpaId;
+use sp_core::{sr25519, Pair, Public};
+use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -52,16 +53,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		vec![
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
 			get_account_id_from_seed::<sr25519::Public>("Bob"),
-			get_account_id_from_seed::<sr25519::Public>("Charlie"),
-			get_account_id_from_seed::<sr25519::Public>("Dave"),
-			get_account_id_from_seed::<sr25519::Public>("Eve"),
-			get_account_id_from_seed::<sr25519::Public>("Ferdie"),
 			get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 			get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-			get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-			get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-			get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-			get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 		],
 		true,
 	))
@@ -101,7 +94,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	.build())
 }
 
-/// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
@@ -111,7 +103,7 @@ fn testnet_genesis(
 	serde_json::json!({
 		"balances": {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			"balances": endowed_accounts.iter().cloned().map(|k| (k, 1u64 << 60)).collect::<Vec<_>>(),
+			"balances": endowed_accounts.iter().cloned().map(|k| (k, 10_000_000_000_000 as i64)).collect::<Vec<_>>(),
 		},
 		"aura": {
 			"authorities": initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>(),
@@ -125,3 +117,4 @@ fn testnet_genesis(
 		},
 	})
 }
+

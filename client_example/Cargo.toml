@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 subxt = "0.32.0"
-subxt-signer = { version = "0.32.0", features = ["subxt"] }
-tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros", "time"] }
+subxt-signer = { features = ["subxt"] }
+tokio = { features = ["rt-multi-thread", "macros", "time"] }
 
 [workspace]
