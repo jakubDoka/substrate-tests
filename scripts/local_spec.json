@@ -2,9 +2,7 @@
   "name": "Local Testnet",
   "id": "local_testnet",
   "chainType": "Local",
-  "bootNodes": [
-    "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAZex8X6TDZsfqrtjAgDw9kEd6YmioZgx9Sn3udK4kWyc"
-  ],
+  "bootNodes": [],
   "telemetryEndpoints": null,
   "protocolId": null,
   "properties": null,
@@ -48,6 +46,10 @@
         },
         "balances": {
           "balances": [
+            [
+              "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              10000000000000
+            ],
             [
               "5DcYmh8Br2jiM7DBdfQS5PsEmZokWcbWJWRmDXzZ35riuBno",
               10000000000000

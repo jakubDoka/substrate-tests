@@ -23,3 +23,5 @@ export NODE_BIN="/opt/node-template"
 export PORT=30333
 # RPC port
 export RPC_PORT=9944
+# podman or docker
+export EXECUTOR=docker
