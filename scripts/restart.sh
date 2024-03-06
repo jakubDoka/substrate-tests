@@ -8,5 +8,5 @@ for node in node1 node2 node3 node4 node5 rpc; do
   $EXECUTOR rm $node
 done
 
-$EXECUTOR rmi chain:latest
-$EXECUTOR build -t chain:latest -f scripts/build.Dockerfile .
+$EXECUTOR rmi $IMAGE
+$EXECUTOR build -t $IMAGE -f scripts/build.Dockerfile .

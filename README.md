@@ -5,13 +5,12 @@ To compile the chain in docker on mac ensure you have docker installed, then go 
 ```sh
 source ./scripts/variables.sh &&
 docker build -t chain:latest -f scripts/build.Dockerfile . \
-    --build-arg IMAGE=$IMAGE \
     --build-arg CHAIN=$CHAIN \
     --build-arg VOLUME=$VOLUME \
     --build-arg NODE_BIN=$NODE_BIN
 ```
 
-Note: you can also omit all the --build-args and the source command, the Dockerfile will use it's default values.
+Note: you can also omit all the --build-args and the source command, the Dockerfile will use it's default values which are development values.
 
 After building the image, you can run a number of nodes:
 ```sh
@@ -23,13 +22,11 @@ They will be running in the background, check them with:
 docker ps
 ```
 
-# Updating chain specs
-After doing the changes on the runtime, you can generate another spec with the following script:
+# Restarting the nodes, and recompiling
+There is a script to stop the running nodes, remove them, and recompile the image
 ```sh
-./scripts/update_spec.sh
+./scripts/restart.sh && ./scripts/test_network.sh
 ```
-
-This script will generate a new spec and update all nodes. The spec file is located at "/data/${CHAIN}_spec_raw.json". The /data dir is a persistent volume.
 
 # Substrate Node Template
 

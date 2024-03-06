@@ -37,7 +37,7 @@ start_rpc() {
     --rpc-cors all \
     --allow-private-ip \
     --state-pruning archive \
-    --name "rpc_node"
+    --name "rpc"
 }
 
 if [[ "$VALIDATOR" == "TRUE" ]]; then
