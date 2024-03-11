@@ -48,6 +48,8 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_sudo_authorities;
 
+pub use pallet_node_staker;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -272,6 +274,7 @@ construct_runtime!(
 		Grandpa: pallet_grandpa,
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
+		Staker: node_staker,
 		Sudo: pallet_sudo,
 		SudoAuthorities: pallet_sudo_authorities,
 		Multisig: pallet_multisig,

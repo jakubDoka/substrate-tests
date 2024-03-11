@@ -4663,6 +4663,7 @@ dependencies = [
  "pallet-balances",
  "pallet-grandpa",
  "pallet-multisig",
+ "pallet-node-staker",
  "pallet-sudo",
  "pallet-sudo-authorities",
  "pallet-timestamp",
@@ -4940,6 +4941,23 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-v1.8.0)",
+]
+
+[[package]]
+name = "pallet-node-staker"
+version = "0.0.1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-aura",
+ "pallet-grandpa",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]

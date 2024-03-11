@@ -51,6 +51,7 @@ frame-system-benchmarking = { default-features = false, git = "https://github.co
 
 # Local Dependencies
 pallet-sudo-authorities = { default-features = false, path = "../pallets/sudo-authorities" }
+pallet-node-staker = { default-features = false, path = "../pallets/node-staker" }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", optional = true , tag = "polkadot-v1.8.0" }
@@ -74,6 +75,7 @@ std = [
 	"pallet-grandpa/std",
 	"pallet-sudo/std",
 	"pallet-sudo-authorities/std",
+	"pallet-node-staker/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -113,6 +115,7 @@ try-runtime = [
 	"pallet-grandpa/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-sudo-authorities/try-runtime",
+	"pallet-node-staker/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 ]
