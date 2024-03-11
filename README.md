@@ -1,6 +1,6 @@
-# Compile Docker image
+# Compile Image
 
-To compile the chain in docker on mac ensure you have docker installed, then go to the root of this repo, and after that run following command:
+To compile the chain ensure you have docker installed, then go to the root of this repo, and after that run following command:
 
 ```sh
 source ./scripts/variables.sh &&
@@ -11,6 +11,8 @@ docker build -t chain:latest -f scripts/build.Dockerfile . \
 ```
 
 Note: you can also omit all the --build-args and the source command, the Dockerfile will use it's default values which are development values.
+
+If you are using Mac and the build fals, try using this flag: `--platform linux/amd64`
 
 After building the image, you can run a number of nodes:
 ```sh
