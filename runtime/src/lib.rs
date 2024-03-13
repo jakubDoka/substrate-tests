@@ -12,7 +12,7 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify},
+	traits::{BlakeTwo256, Block as BlockT,IdentifyAccount, NumberFor, One, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -21,7 +21,10 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_support::genesis_builder_helper::{build_config, create_default_config};
+use frame_support::{
+	genesis_builder_helper::{build_config, create_default_config},
+	PalletId as PalletIdStruct,
+};
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
@@ -59,6 +62,7 @@ pub type Signature = MultiSignature;
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+// pub type AccountId = From<sr25519::Public> + IsType<<frame_system::Config>::AccountId>;
 
 /// Balance of an account.
 pub type Balance = u128;
@@ -183,6 +187,18 @@ impl frame_system::Config for Runtime {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+parameter_types! {
+	// 5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z;
+	pub const PalletId: PalletIdStruct = PalletIdStruct(*b"py/trsry");
+}
+
+impl pallet_node_staker::Config for Runtime {
+	type PalletId = PalletId;
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type Currency = Balances;
+}
+
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
@@ -274,7 +290,7 @@ construct_runtime!(
 		Grandpa: pallet_grandpa,
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
-		Staker: node_staker,
+		Staker: pallet_node_staker,
 		Sudo: pallet_sudo,
 		SudoAuthorities: pallet_sudo_authorities,
 		Multisig: pallet_multisig,

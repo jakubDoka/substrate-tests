@@ -52,6 +52,7 @@ frame-system-benchmarking = { default-features = false, git = "https://github.co
 # Local Dependencies
 pallet-sudo-authorities = { default-features = false, path = "../pallets/sudo-authorities" }
 pallet-node-staker = { default-features = false, path = "../pallets/node-staker" }
+hex = "0.4.3"
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", optional = true , tag = "polkadot-v1.8.0" }
