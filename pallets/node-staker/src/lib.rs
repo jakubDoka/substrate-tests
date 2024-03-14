@@ -6,28 +6,43 @@ use frame_support::sp_runtime::SaturatedConversion;
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
+pub mod weights;
+
+// ../../target/release/node-template
+// benchmark
+// pallet
+// --chain
+// dev
+// --pallet
+// pallet_node_staker
+// --extrinsic
+// *
+// --steps=50
+// --repeat=20
+// --wasm-execution=compiled
+// --output
+// pallets/node-staker/src/weights.rs
+// --template
+// ./benchmarking/frame-weight-template.hbs
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use codec::{Codec, MaxEncodedLen};
+	use codec::MaxEncodedLen;
 	use frame_support::{
 		pallet_prelude::*,
-		sp_runtime::{traits::AtLeast32BitUnsigned, FixedPointOperand},
 		traits::{Currency, ExistenceRequirement},
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::{
-		traits::{AccountIdConversion, StaticLookup},
-		Saturating,
-	};
+	use sp_runtime::traits::{AccountIdConversion, StaticLookup};
 
 	/// Source type to be used in Lookup::lookup
-	type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
+	pub type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 	/// Type used to convert an integer into a Balance
-	#[cfg(feature = "std")]
-	type BalanceOf<T> =
+	// #[cfg(feature = "std")]
+	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	pub type Ed = [u8; 32];
@@ -122,6 +137,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::unbounded]
+	#[pallet::getter(fn list_stakes)]
 	pub type Stakes<T: Config> = StorageMap<
 		Hasher = Blake2_128Concat,
 		Key = NodeIdentity,
@@ -162,18 +178,6 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 
 		// type StakeDurationMilis: pallet_timestamp::Config::Moment;
-
-		/// Balance used to make transfers.
-		type Balance: Parameter
-			+ Member
-			+ AtLeast32BitUnsigned
-			+ Codec
-			+ Default
-			+ Copy
-			+ MaybeSerializeDeserialize
-			+ MaxEncodedLen
-			+ TypeInfo
-			+ FixedPointOperand;
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -185,7 +189,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		// #[pallet::weight(Weight::default())]
-		#[pallet::weight(100000)]
+		#[pallet::weight(1000000000000)]
 		#[pallet::call_index(0)]
 		pub fn join(
 			origin: OriginFor<T>,
@@ -220,7 +224,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(100000)]
+		#[pallet::weight(1000000000000)]
 		#[pallet::call_index(1)]
 		pub fn vote(
 			origin: OriginFor<T>,
@@ -254,23 +258,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(100000)]
+		#[pallet::weight(1000000000000)]
 		#[pallet::call_index(2)]
-		pub fn list(
-			origin: OriginFor<T>,
-			// ) -> DispatchResult<Vec<(NodeData, NodeAddress)>> {
-		) -> DispatchResult {
-			let r: Vec<(NodeData, NodeAddress)> = Stakes::<T>::iter_keys()
-				.map(|id| {
-					let stake = Stakes::<T>::get(id).unwrap();
-					(NodeData { sign: id.sign, enc: id.enc, id: stake.id }, stake.addr)
-				})
-				.collect();
-			Ok(())
-		}
-
-		#[pallet::weight(100000)]
-		#[pallet::call_index(3)]
 		pub fn change_addr(
 			origin: OriginFor<T>,
 			identity: NodeIdentity,
@@ -287,8 +276,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(100000)]
-		#[pallet::call_index(4)]
+		#[pallet::weight(1000000000000)]
+		#[pallet::call_index(3)]
 		pub fn reclaim(origin: OriginFor<T>, identity: NodeIdentity) -> DispatchResult {
 			let receiver = ensure_signed(origin)?;
 			let stake = Stakes::<T>::get(identity).ok_or(Error::<T>::NoSuchStake)?;
@@ -301,8 +290,8 @@ pub mod pallet {
 
 			Stakes::<T>::remove(identity);
 
-			let balance = T::Currency::free_balance(&receiver);
-			print!("current balance: {balance:?}");
+			// let balance = T::Currency::free_balance(&receiver);
+			// print!("current balance: {balance:?}");
 
 			let amount = stake.apply_slashes();
 			let treasury = Self::account_id();

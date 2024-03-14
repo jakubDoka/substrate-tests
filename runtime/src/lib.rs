@@ -7,12 +7,15 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use pallet_grandpa::AuthorityId as GrandpaId;
+// use polkadot_runtime_common::SlowAdjustingFeeUpdate;
+use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
+use sp_runtime::traits::One;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{BlakeTwo256, Block as BlockT,IdentifyAccount, NumberFor, One, Verify},
+	traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -23,6 +26,9 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
+	// weights::{
+	// 	ConstantMultiplier, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+	// },
 	PalletId as PalletIdStruct,
 };
 // A few exports that help ease life for downstream crates.
@@ -72,6 +78,11 @@ pub type Nonce = u32;
 
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
+
+// Unit = the base number of indivisible units for balances
+pub const UNIT: Balance = 1_000_000_000_000;
+pub const MILLIUNIT: Balance = 1_000_000_000;
+pub const MICROUNIT: Balance = 1_000_000;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -195,7 +206,6 @@ parameter_types! {
 impl pallet_node_staker::Config for Runtime {
 	type PalletId = PalletId;
 	type RuntimeEvent = RuntimeEvent;
-	type Balance = Balance;
 	type Currency = Balances;
 }
 
@@ -248,16 +258,18 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+	/// Relay Chain `TransactionByteFee` / 10
+	// pub const TransactionByteFee: Balance = 10 * MICROUNIT;
 	pub FeeMultiplier: Multiplier = Multiplier::one();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
-	type OperationalFeeMultiplier = ConstU8<5>;
+	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
 	type WeightToFee = IdentityFee<Balance>;
 	type LengthToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+	type OperationalFeeMultiplier = ConstU8<5>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -328,6 +340,33 @@ pub type Executive = frame_executive::Executive<
 	Runtime,
 	AllPalletsWithSystem,
 >;
+
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+// pub struct WeightToFee;
+// impl WeightToFeePolynomial for WeightToFee {
+// 	type Balance = Balance;
+// 	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+// 		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
+// 		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
+// 		let p = MILLIUNIT / 10;
+// 		let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+// 		smallvec![WeightToFeeCoefficient {
+// 			degree: 1,
+// 			negative: false,
+// 			coeff_frac: Perbill::from_rational(p % q, q),
+// 			coeff_integer: p / q,
+// 		}]
+// 	}
+// }
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]
