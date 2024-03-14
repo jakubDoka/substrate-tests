@@ -17,7 +17,10 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::traits::{AccountIdConversion, StaticLookup};
+	use sp_runtime::{
+		traits::{AccountIdConversion, StaticLookup},
+		Saturating,
+	};
 
 	/// Source type to be used in Lookup::lookup
 	type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
@@ -30,7 +33,6 @@ pub mod pallet {
 	pub type Ed = [u8; 32];
 	pub type CryptoHash = [u8; 32];
 
-	// pub type Balance = u128;
 	pub const STAKE_AMOUNT: u128 = 1_000_000;
 	pub const INIT_VOTE_POOL: u32 = 3;
 	pub static STAKE_DURATION_MILIS: u64 = 1000 * 60 * 60 * 24 * 30;
@@ -39,6 +41,30 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Not enough votes in pool
+		NotEnoughVotes,
+		/// Too many votes
+		TooManyVotes,
+		/// The claim already exists.
+		AlreadyClaimed,
+		/// Already joined/created stake.
+		AlreadyJoined,
+		/// The claim does not exist, so it cannot be revoked.
+		NoSuchClaim,
+		/// The stake struct does not exist.
+		NoSuchStake,
+		/// The claim is owned by another account, so caller can't revoke it.
+		NotClaimOwner,
+		/// Caller is not the owner of the stake.
+		NotOwner,
+		/// Caller is trying to vote for his own stake.
+		CannotVoteForSelf,
+		/// Stake is locked and cannot be claimed.
+		StakeIsLocked,
+	}
 
 	#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode, TypeInfo)]
 	pub enum NodeAddress {
@@ -67,6 +93,19 @@ pub mod pallet {
 		votes: Votes,
 		id: Ed,
 		addr: NodeAddress,
+	}
+
+	impl<T: Config> Stake<T> {
+		fn apply_slashes(&self) -> BalanceOf<T> {
+			if self.votes.rating > 0 {
+				let amount = self.amount.saturated_into::<u128>();
+				amount
+					.saturating_sub(BASE_SLASH << u128::from(self.votes.rating * SLASH_FACTOR))
+					.saturated_into::<BalanceOf<T>>()
+			} else {
+				self.amount
+			}
+		}
 	}
 
 	#[derive(Encode, Decode, TypeInfo, Debug)]
@@ -122,6 +161,8 @@ pub mod pallet {
 		/// The staking balance.
 		type Currency: Currency<Self::AccountId>;
 
+		// type StakeDurationMilis: pallet_timestamp::Config::Moment;
+
 		/// Balance used to make transfers.
 		type Balance: Parameter
 			+ Member
@@ -168,49 +209,110 @@ pub mod pallet {
 				addr,
 			};
 
-			let id = NodeIdentity { sign: node_data.sign, enc: node_data.enc };
+			let node_identity = NodeIdentity { sign: node_data.sign, enc: node_data.enc };
 
-			Stakes::<T>::insert(id, stake);
+			// prevent caller from joining again
+			ensure!(!Stakes::<T>::contains_key(node_identity), Error::<T>::AlreadyJoined);
+			Stakes::<T>::insert(node_identity, stake);
 
 			Self::deposit_event(Event::Joined { addr, identity: node_data.id });
 
 			Ok(())
 		}
 
-		// #[pallet::weight(Weight::default())]
-		// #[pallet::call_index(1)]
-		// pub fn vote(
-		// 	origin: OriginFor<T>,
-		// 	identity: NodeIdentity,
-		// 	target: NodeIdentity,
-		// 	rating: i32,
-		// ) -> DispatchResult {
-		// 	todo!()
-		// }
-		//
-		// #[pallet::weight(Weight::default())]
-		// #[pallet::call_index(2)]
-		// pub fn list(
-		// 	origin: OriginFor<T>,
-		// 	// ) -> DispatchResult<Vec<(NodeData, NodeAddress)>> {
-		// ) -> DispatchResult {
-		// 	todo!()
-		// }
-		//
-		// #[pallet::weight(Weight::default())]
-		// #[pallet::call_index(3)]
-		// pub fn change_addr(
-		// 	origin: OriginFor<T>,
-		// 	identity: NodeIdentity,
-		// 	addr: NodeAddress,
-		// ) -> DispatchResult {
-		// 	todo!()
-		// }
-		//
-		// #[pallet::weight(Weight::default())]
-		// #[pallet::call_index(4)]
-		// pub fn reclaim(origin: OriginFor<T>, identity: NodeIdentity) -> DispatchResult {
-		// 	todo!()
-		// }
+		#[pallet::weight(100000)]
+		#[pallet::call_index(1)]
+		pub fn vote(
+			origin: OriginFor<T>,
+			identity: NodeIdentity,
+			target: NodeIdentity,
+			rating: i32,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			let mut stake = Stakes::<T>::get(identity).ok_or(Error::<T>::NoSuchStake)?;
+			ensure!(stake.owner == sender, Error::<T>::NotOwner);
+
+			let mut target_stake = Stakes::<T>::get(target).ok_or(Error::<T>::NoSuchStake)?;
+			ensure!(target_stake.owner != sender, Error::<T>::CannotVoteForSelf);
+
+			stake.votes.pool = stake
+				.votes
+				.pool
+				.checked_sub(rating.unsigned_abs())
+				.ok_or(Error::<T>::NotEnoughVotes)?;
+
+			target_stake.votes.rating = target_stake
+				.votes
+				.rating
+				.checked_add_signed(-rating)
+				.ok_or(Error::<T>::TooManyVotes)?;
+
+			Stakes::<T>::insert(identity, &stake);
+			Stakes::<T>::insert(target, &target_stake);
+
+			Ok(())
+		}
+
+		#[pallet::weight(100000)]
+		#[pallet::call_index(2)]
+		pub fn list(
+			origin: OriginFor<T>,
+			// ) -> DispatchResult<Vec<(NodeData, NodeAddress)>> {
+		) -> DispatchResult {
+			let r: Vec<(NodeData, NodeAddress)> = Stakes::<T>::iter_keys()
+				.map(|id| {
+					let stake = Stakes::<T>::get(id).unwrap();
+					(NodeData { sign: id.sign, enc: id.enc, id: stake.id }, stake.addr)
+				})
+				.collect();
+			Ok(())
+		}
+
+		#[pallet::weight(100000)]
+		#[pallet::call_index(3)]
+		pub fn change_addr(
+			origin: OriginFor<T>,
+			identity: NodeIdentity,
+			addr: NodeAddress,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let mut stake = Stakes::<T>::get(identity).ok_or(Error::<T>::NoSuchStake)?;
+			ensure!(stake.owner == sender, Error::<T>::NotOwner);
+
+			stake.addr = addr;
+			Stakes::<T>::insert(identity, &stake);
+			Self::deposit_event(Event::AddrChanged { identity: stake.id, addr });
+
+			Ok(())
+		}
+
+		#[pallet::weight(100000)]
+		#[pallet::call_index(4)]
+		pub fn reclaim(origin: OriginFor<T>, identity: NodeIdentity) -> DispatchResult {
+			let receiver = ensure_signed(origin)?;
+			let stake = Stakes::<T>::get(identity).ok_or(Error::<T>::NoSuchStake)?;
+			ensure!(stake.owner == receiver, Error::<T>::NotOwner);
+			ensure!(
+				stake.created_at.saturated_into::<u64>() + STAKE_DURATION_MILIS <=
+					pallet_timestamp::Pallet::<T>::get().saturated_into::<u64>(),
+				Error::<T>::StakeIsLocked
+			);
+
+			Stakes::<T>::remove(identity);
+
+			let balance = T::Currency::free_balance(&receiver);
+			print!("current balance: {balance:?}");
+
+			let amount = stake.apply_slashes();
+			let treasury = Self::account_id();
+			T::Currency::transfer(&treasury, &receiver, amount, ExistenceRequirement::AllowDeath)?;
+
+			Stakes::<T>::remove(identity);
+
+			Self::deposit_event(Event::Reclaimed { identity: stake.id });
+
+			Ok(())
+		}
 	}
 }
