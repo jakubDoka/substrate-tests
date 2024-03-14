@@ -8,21 +8,21 @@ pub use pallet::*;
 
 pub mod weights;
 
-// ../../target/release/node-template
-// benchmark
-// pallet
-// --chain
-// dev
-// --pallet
-// pallet_node_staker
-// --extrinsic
-// *
-// --steps=50
-// --repeat=20
-// --wasm-execution=compiled
-// --output
-// pallets/node-staker/src/weights.rs
-// --template
+// target/release/node-template \
+// benchmark \
+// pallet \
+// --chain \
+// dev \
+// --pallet \
+// pallet_node_staker \
+// --extrinsic \
+// "*" \
+// --steps=50 \
+// --repeat=20 \
+// --wasm-execution=compiled \
+// --output \
+// pallets/node-staker/src/weights.rs \
+// --template \
 // ./benchmarking/frame-weight-template.hbs
 
 #[frame_support::pallet]
