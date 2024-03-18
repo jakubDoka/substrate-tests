@@ -56,6 +56,7 @@ frame-system-benchmarking = { default-features = false, git = "https://github.co
 # Local Dependencies
 pallet-sudo-authorities = { default-features = false, path = "../pallets/sudo-authorities" }
 pallet-node-staker = { default-features = false, path = "../pallets/node-staker" }
+pallet-user-manager = { default-features = false, path = "../pallets/user-manager" }
 smallvec = "1.13.1"
 
 [build-dependencies]
@@ -81,6 +82,7 @@ std = [
 	"pallet-sudo/std",
 	"pallet-sudo-authorities/std",
 	"pallet-node-staker/std",
+	"pallet-user-manager/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -121,6 +123,7 @@ try-runtime = [
 	"pallet-sudo/try-runtime",
 	"pallet-sudo-authorities/try-runtime",
 	"pallet-node-staker/try-runtime",
+	"pallet-user-manager/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 ]

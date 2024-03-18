@@ -8,7 +8,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use pallet_grandpa::AuthorityId as GrandpaId;
 // use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use smallvec::smallvec;
+// use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_runtime::traits::One;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -58,6 +58,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_sudo_authorities;
 
 pub use pallet_node_staker;
+pub use pallet_user_manager;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -209,6 +210,9 @@ impl pallet_node_staker::Config for Runtime {
 	type Currency = Balances;
 }
 
+impl pallet_user_manager::Config for Runtime {
+}
+
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
@@ -305,6 +309,7 @@ construct_runtime!(
 		Staker: pallet_node_staker,
 		Sudo: pallet_sudo,
 		SudoAuthorities: pallet_sudo_authorities,
+		UserManager: pallet_user_manager,
 		Multisig: pallet_multisig,
 	}
 );
@@ -584,6 +589,9 @@ impl_runtime_apis! {
 
 			use frame_support::traits::WhitelistedStorageKeys;
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
+
+			// let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(NodeStaker::account_id());
+			// whitelist.push(treasury_key.to_vec().into());
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);

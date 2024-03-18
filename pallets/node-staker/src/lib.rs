@@ -7,6 +7,7 @@ use frame_support::sp_runtime::SaturatedConversion;
 pub use pallet::*;
 
 pub mod weights;
+// pub mod benchmarking;
 
 // target/release/node-template \
 // benchmark \
