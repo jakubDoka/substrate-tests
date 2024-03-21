@@ -21,5 +21,6 @@ FROM archlinux:latest
 
 COPY --from=builder /workspace/target/release/node-template /opt
 COPY --from=builder /workspace/scripts/docker_start.sh /opt
+COPY --from=builder /workspace/scripts/testnet_spec.json /opt
 CMD ["/bin/bash", "/opt/docker_start.sh"]
 
