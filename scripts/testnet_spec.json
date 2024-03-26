@@ -1,7 +1,7 @@
 {
-  "name": "ghe0 Testnet",
-  "id": "ghe0_testnet",
-  "chainType": "Live",
+  "name": "Development",
+  "id": "dev",
+  "chainType": "Development",
   "bootNodes": [],
   "telemetryEndpoints": null,
   "protocolId": null,
@@ -48,6 +48,10 @@
       "balances": {
         "balances": [
           [
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            10000000000000
+          ],
+          [
             "5DcYmh8Br2jiM7DBdfQS5PsEmZokWcbWJWRmDXzZ35riuBno",
             10000000000000
           ],
@@ -69,7 +73,7 @@
         "multiplier": "1000000000000000000"
       },
       "sudo": {
-        "key": "5HYufsnd7ZQjJrfgZab79dTQHQg6k1qzF7a84JbuZZNPokw4"
+        "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
       }
     }
   }
