@@ -7,6 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use pallet_grandpa::AuthorityId as GrandpaId;
+use pallet_node_staker::{Chat, Satelite};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -198,7 +199,13 @@ parameter_types! {
 	pub const PalletId: PalletIdStruct = PalletIdStruct(*b"py/trsry");
 }
 
-impl pallet_node_staker::Config for Runtime {
+impl pallet_node_staker::Config<Chat> for Runtime {
+	type PalletId = PalletId;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+}
+
+impl pallet_node_staker::Config<Satelite> for Runtime {
 	type PalletId = PalletId;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -291,6 +298,7 @@ impl pallet_multisig::Config for Runtime {
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
+#[rustfmt::skip]
 construct_runtime!(
 	pub struct Runtime {
 		System: frame_system,
@@ -299,7 +307,8 @@ construct_runtime!(
 		Grandpa: pallet_grandpa,
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
-		Staker: pallet_node_staker,
+		ChatStaker: pallet_node_staker::<Chat>,
+		SateliteStaker: pallet_node_staker::<Satelite>,
 		Sudo: pallet_sudo,
 		SudoAuthorities: pallet_sudo_authorities,
 		UserManager: pallet_user_manager,
