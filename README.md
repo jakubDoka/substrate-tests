@@ -3,7 +3,7 @@
 To compile the chain in docker on mac ensure you have docker installed, then go to the root of this repo, and after that run following command:
 
 ```sh
-docker build -t chain -f scripts/build.Dockerfile .
+docker build -t chain:legacy -f scripts/build.Dockerfile .
 ```
 
 # Substrate Node Template
