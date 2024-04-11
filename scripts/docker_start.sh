@@ -15,6 +15,34 @@ start_validator() {
     --suri "$SEED" \
     --key-type gran
 
+  /opt/node-template key insert \
+    --base-path /opt/node_data \
+    --chain $CHAIN \
+    --scheme Ed25519 \
+    --suri "$MNEMONIC//1" \
+    --key-type gran
+
+  /opt/node-template key insert \
+    --base-path /opt/node_data \
+    --chain $CHAIN \
+    --scheme Sr25519 \
+    --suri "$MNEMONIC//1" \
+    --key-type aura
+
+  /opt/node-template key insert \
+    --base-path /opt/node_data \
+    --chain $CHAIN \
+    --scheme Ed25519 \
+    --suri "$MNEMONIC//2" \
+    --key-type gran
+
+  /opt/node-template key insert \
+    --base-path /opt/node_data \
+    --chain $CHAIN \
+    --scheme Sr25519 \
+    --suri "$MNEMONIC//2" \
+    --key-type aura
+
   /opt/node-template \
     --base-path /opt/node_data \
     --chain $CHAIN \
