@@ -111,7 +111,6 @@ pub mod pallet {
 		amount: BalanceOf<T, I>,
 		created_at: <T as pallet_timestamp::Config>::Moment,
 		votes: Votes,
-		id: Ed,
 		addr: NodeAddress,
 		phantom: core::marker::PhantomData<I>,
 	}
@@ -150,13 +149,6 @@ pub mod pallet {
 		Value = Stake<T, I>,
 		QueryKind = OptionQuery,
 	>;
-
-	#[derive(Encode, Decode, TypeInfo, Debug, PartialEq, Clone)]
-	pub struct NodeData {
-		pub sign: CryptoHash,
-		pub enc: CryptoHash,
-		pub id: Ed,
-	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -200,7 +192,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		pub fn join(
 			origin: OriginFor<T>,
-			node_data: NodeData,
+			node_data: NodeIdentity,
 			addr: NodeAddress,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -214,7 +206,6 @@ pub mod pallet {
 			let stake = Stake::<T, I> {
 				amount,
 				owner: sender,
-				id: node_data.id,
 				votes: Votes::default(),
 				created_at: pallet_timestamp::Pallet::<T>::get(),
 				addr,
@@ -227,7 +218,7 @@ pub mod pallet {
 			ensure!(!Stakes::<T, I>::contains_key(node_identity), Error::<T, I>::AlreadyJoined);
 			Stakes::<T, I>::insert(node_identity, stake);
 
-			Self::deposit_event(Event::Joined { addr, identity: node_data.id });
+			Self::deposit_event(Event::Joined { addr, identity: node_data.sign });
 
 			Ok(())
 		}
@@ -279,7 +270,7 @@ pub mod pallet {
 
 			stake.addr = addr;
 			Stakes::<T, I>::insert(identity, &stake);
-			Self::deposit_event(Event::AddrChanged { identity: stake.id, addr });
+			Self::deposit_event(Event::AddrChanged { identity: identity.sign, addr });
 
 			Ok(())
 		}
@@ -307,7 +298,7 @@ pub mod pallet {
 
 			Stakes::<T, I>::remove(identity);
 
-			Self::deposit_event(Event::Reclaimed { identity: stake.id });
+			Self::deposit_event(Event::Reclaimed { identity: identity.sign });
 
 			Ok(())
 		}
