@@ -180,6 +180,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type SlashFactor: Get<u8>;
 
+		/// Percentage of the total budget that will be distributed based of reputation.
+		/// (total_budget * ReputationRewardFraction / 256) * reputation / total_reputation
 		#[pallet::constant]
 		type ReputationRewardFactor: Get<u8>;
 
