@@ -35,6 +35,7 @@ pallet-grandpa = { default-features = false, git = "https://github.com/paritytec
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.10.0" }
 sp-consensus-grandpa = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.10.0" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.10.0" }
+primitive-types = { version = "0.12.2", default-features = false }
 
 [features]
 default = ["std"]

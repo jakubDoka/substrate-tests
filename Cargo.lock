@@ -4929,6 +4929,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-timestamp",
  "parity-scale-codec",
+ "primitive-types",
  "scale-info",
  "sp-consensus-grandpa",
  "sp-core",

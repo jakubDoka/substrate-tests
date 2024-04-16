@@ -197,16 +197,48 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	// 5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z;
 	pub const PalletId: PalletIdStruct = PalletIdStruct(*b"py/trsry");
+	pub const ChatBudgetPalletId: PalletIdStruct = PalletIdStruct(*b"py/chatx");
+	pub const SateliteBudgetPalletId: PalletIdStruct = PalletIdStruct(*b"py/satlt");
+
+	pub const SlashFactor: u8 = 13;
+	pub const SlashAreaFactor: u8 = 64;
+	pub const ReputationRewardFactor: u8 = 64;
+	pub const ReputationIncomeFactor: u8 = 8;
+	pub const StakePeriodBlocks: u32 = 60 * 60 * 24 * 7 / 6;
+	pub const ReputationIncomePeriodBlocks: u32 = 60 * 60 * 24 / 6;
+}
+
+pub enum RewardCap {}
+impl pallet_node_staker::RewardCap for RewardCap {
+	fn get(node_count: u32) -> u128 {
+		1_000_000_000_000_000_000 * (node_count * node_count.ilog2()) as u128
+	}
 }
 
 impl pallet_node_staker::Config<Chat> for Runtime {
 	type PalletId = PalletId;
+	type BudgetPalletId = ChatBudgetPalletId;
+	type SlashFactor = SlashFactor;
+	type SlashAreaFactor = SlashAreaFactor;
+	type ReputationIncomeFactor = ReputationIncomeFactor;
+	type ReputationRewardFactor = ReputationRewardFactor;
+	type StakePeriodBlocks = StakePeriodBlocks;
+	type ReputationIncomePeriodBlocks = ReputationIncomePeriodBlocks;
+	type RevardCap = RewardCap;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 }
 
 impl pallet_node_staker::Config<Satelite> for Runtime {
 	type PalletId = PalletId;
+	type BudgetPalletId = SateliteBudgetPalletId;
+	type SlashFactor = SlashFactor;
+	type SlashAreaFactor = SlashAreaFactor;
+	type ReputationIncomeFactor = ReputationIncomeFactor;
+	type ReputationRewardFactor = ReputationRewardFactor;
+	type StakePeriodBlocks = StakePeriodBlocks;
+	type ReputationIncomePeriodBlocks = ReputationIncomePeriodBlocks;
+	type RevardCap = RewardCap;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 }
@@ -218,7 +250,7 @@ impl pallet_aura::Config for Runtime {
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<32>;
 	type AllowMultipleBlocksPerSlot = ConstBool<false>;
-        type SlotDuration = pallet_aura::MinimumPeriodTimesTwo<Runtime>;
+	type SlotDuration = pallet_aura::MinimumPeriodTimesTwo<Runtime>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -463,7 +495,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-                        pallet_aura::Authorities::<Runtime>::get().into_inner()
+						pallet_aura::Authorities::<Runtime>::get().into_inner()
 		}
 	}
 
