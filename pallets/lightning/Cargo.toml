@@ -1,6 +1,6 @@
 [package]
-name = "pallet-node-staker"
-description = "Stake tokens with a node"
+name = "pallet-lightning"
+description = "establish micro transaction channels"
 version = "0.0.1"
 license = "MIT-0"
 authors.workspace = true

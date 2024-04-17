@@ -10,10 +10,6 @@ pub mod weights;
 pub struct Chat;
 pub struct Satelite;
 
-pub trait RewardCap {
-	fn get(node_count: u32) -> u128;
-}
-
 // pub mod benchmarking;
 
 // target/release/node-template \
@@ -43,6 +39,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use primitive_types::U256;
+	use scale_info::prelude::vec::Vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
 		SaturatedConversion,
@@ -55,8 +52,6 @@ pub mod pallet {
 	// #[cfg(feature = "std")]
 	pub type BalanceOf<T, I> =
 		<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	pub type ReputationOf<T, I> = BalanceOf<T, I>;
 
 	pub type Hash = [u8; 32];
 	pub type NodeIdentity = Hash;
@@ -72,12 +67,12 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
-		/// Not enough votes in pool
-		NotEnoughVotes,
-		/// Too many votes
-		TooManyVotes,
 		/// The claim already exists.
 		AlreadyClaimed,
+		/// The user was recently slashed and has temporary protection.
+		RecentlySlashed,
+		/// User already voted in this vote.
+		AlreadyVoted,
 		/// Already joined/created stake.
 		AlreadyJoined,
 		/// The claim does not exist, so it cannot be revoked.
@@ -107,17 +102,9 @@ pub mod pallet {
 	pub struct Stake<T: Config<I>, I: 'static = ()> {
 		owner: T::AccountId,
 		staked: BalanceOf<T, I>,
-		reputation: ReputationOf<T, I>,
 		frozen_until: BlockNumberFor<T>,
-		addr: NodeAddress,
+		protected_until: BlockNumberFor<T>,
 		enc: Hash,
-	}
-
-	#[derive(Encode, Decode, TypeInfo, RuntimeDebug)]
-	#[scale_info(skip_type_params(T, I))]
-	pub struct FrozenReputation<T: Config<I>, I: 'static = ()> {
-		reputation: ReputationOf<T, I>,
-		frozen_until: BlockNumberFor<T>,
 	}
 
 	#[pallet::storage]
@@ -132,22 +119,31 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::unbounded]
-	#[pallet::getter(fn list_frozen_reputations)]
-	pub type ReputationFreezes<T: Config<I>, I: 'static = ()> = StorageMap<
+	#[pallet::getter(fn get_votes)]
+	pub type Votes<T: Config<I>, I: 'static = ()> = StorageMap<
 		Hasher = Blake2_128Concat,
 		Key = NodeIdentity,
-		Value = FrozenReputation<T, I>,
+		Value = Vec<NodeIdentity>,
+		QueryKind = OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::unbounded]
+	#[pallet::getter(fn get_addresses)]
+	pub type Addresses<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Blake2_128Concat,
+		Key = NodeIdentity,
+		Value = NodeAddress,
 		QueryKind = OptionQuery,
 	>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		Joined { identity: Hash, addr: NodeAddress },
-		AddrChanged { identity: Hash, addr: NodeAddress },
-		Reclaimed { identity: Hash },
-		ReputationTransfered { from: Hash, to: Hash, amount: ReputationOf<T, I> },
-		ReputationBurned { source: Hash, target: Hash, amount: ReputationOf<T, I> },
+		Joined { identity: NodeIdentity, addr: NodeAddress },
+		AddrChanged { identity: NodeIdentity, addr: NodeAddress },
+		Reclaimed { identity: NodeIdentity },
+		Voted { source: NodeIdentity, target: NodeIdentity },
 	}
 
 	#[pallet::config]
@@ -166,38 +162,17 @@ pub mod pallet {
 		#[pallet::constant]
 		type StakePeriodBlocks: Get<BlockNumberFor<Self>>;
 
-		/// How much of the stake is node rewarded each period. (0 == 0%, 256 == 100%)
 		#[pallet::constant]
-		type ReputationIncomeFactor: Get<u8>;
+		type ProtectionPeriodBlocks: Get<BlockNumberFor<Self>>;
 
-		/// If reputatuion falls bellow this factor of stake, the stake is slashed.
-		/// (0 == 0%, 256 == 100%)
-		#[pallet::constant]
-		type SlashAreaFactor: Get<u8>;
-
-		/// How much of the stake is slashed when reputation falls into the slash area.
+		/// How much of the stake is slashed from the minimal stake.
 		/// (0 == 0%, 256 == 100%)
 		#[pallet::constant]
 		type SlashFactor: Get<u8>;
 
-		/// Percentage of the total budget that will be distributed based of reputation.
-		/// (total_budget * ReputationRewardFraction / 256) * reputation / total_reputation
+		/// The minimum amount required to stake.
 		#[pallet::constant]
-		type ReputationRewardFactor: Get<u8>;
-
-		/// How often is reputation income distributed.
-		#[pallet::constant]
-		type ReputationIncomePeriodBlocks: Get<BlockNumberFor<Self>>;
-
-		/// Function to calculate collective reward cap. Without this nodes have no motivation to
-		/// allow new nodes to join since split of revenue between nodes motivates the nodes to not
-		/// let anyone in, no matter the amount of users in the network. Cap should increase as more
-		/// nodes join the network, if the total user revenue exceeds the cap, overflow should be
-		/// sent to the treasury.
-		type RevardCap: RewardCap;
-
-		/// Weight information for extrinsics in this pallet.
-		// type WeightInfo: WeightInfo;
+		type MandatoryStake: Get<BalanceOf<Self, I>>;
 
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self, I>>
@@ -205,8 +180,6 @@ pub mod pallet {
 
 		/// The staking balance.
 		type Currency: Currency<Self::AccountId>;
-
-		// type StakeDurationMilis: pallet_timestamp::Config::Moment;
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -218,105 +191,48 @@ pub mod pallet {
 			T::BudgetPalletId::get().into_account_truncating()
 		}
 
-		pub fn calc_reputation_income(staked: BalanceOf<T, I>) -> ReputationOf<T, I> {
-			let staked = staked.saturated_into::<u128>();
-			let reputation = staked * T::ReputationIncomeFactor::get() as u128 / 256;
-			reputation.saturated_into()
+		pub fn ensure_stake_owner(
+			identity: NodeIdentity,
+			origin: OriginFor<T>,
+		) -> Result<(T::AccountId, Stake<T, I>), DispatchError> {
+			let owner = ensure_signed(origin)?;
+			let stake = Stakes::<T, I>::get(identity).ok_or(Error::<T, I>::NoSuchStake)?;
+			ensure!(stake.owner == owner, Error::<T, I>::NotOwner);
+			Ok((owner, stake))
 		}
 
-		pub fn calc_initial_reputation(staked: BalanceOf<T, I>) -> ReputationOf<T, I> {
-			let staked = staked.saturated_into::<u128>();
-			let reputation = staked * T::SlashAreaFactor::get() as u128 / 256;
-			reputation.saturated_into()
+		pub fn slash_amount() -> BalanceOf<T, I> {
+			let base = T::MandatoryStake::get();
+			let factor = T::SlashFactor::get();
+			let slash = base.saturated_into::<u128>() * factor as u128 / 256;
+			slash.saturated_into()
 		}
-
-		pub fn is_in_slash_area(staked: BalanceOf<T, I>, reputation: ReputationOf<T, I>) -> bool {
-			let stake = staked.saturated_into::<u128>();
-			let reputation = reputation.saturated_into::<u128>();
-			let slash_area = stake * T::SlashAreaFactor::get() as u128 / 256;
-			reputation < slash_area
-		}
-
-		//	pub fn calc_reward(reputation: ReputationOf<T, I>) -> (BalanceOf<T, I>, BalanceOf<T, I>)
-		// { 		let cap = T::RevardCap::get(Stakes::<T, I>::iter().count() as u32);
-		//		let total_budget = U256::from(
-		//			T::Currency::total_balance(&Self::budget_account_id()).saturated_into::<u128>(),
-		//		);
-		//		let stake_count = Stakes::<T, I>::iter().count() as u128;
-
-		//		let reputation_budget =
-		//			total_budget * U256::from(T::ReputationRewardFraction::get()) / U256::from(256);
-		//		let base_budget = total_budget - reputation_budget;
-
-		//		let base_reward = base_budget / stake_count;
-		//		let reputation_reward = reputation_budget *
-		//			U256::from(reputation.saturated_into::<u128>()) /
-		//			U256::from(ReputationVolume::<T, I>::get().saturated_into::<u128>());
-		//		let reward = u128::try_from(base_reward + reputation_reward).unwrap();
-		//		let capped_reward = reward.min(cap);
-
-		//		(capped_reward.saturated_into(), (reward - capped_reward).saturated_into())
-		//	}
 	}
 
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			if n % T::ReputationIncomePeriodBlocks::get() == BlockNumberFor::<T>::default() {
-				for (identity, mut stake) in Stakes::<T, I>::iter() {
-					if Self::is_in_slash_area(stake.staked, stake.reputation) {
-						let new_stake = stake.staked.saturated_into::<u128>() *
-							T::SlashFactor::get() as u128 /
-							256;
-						stake.staked = new_stake.saturated_into();
-					}
-
-					let income = Self::calc_reputation_income(stake.staked);
-					stake.reputation += income;
-					Stakes::<T, I>::insert(identity, &stake);
-				}
-			}
-
 			if n % T::StakePeriodBlocks::get() == BlockNumberFor::<T>::default() {
-				let mut total_reputation = 0;
-				let stake_count = Stakes::<T, I>::iter_values()
-					.inspect(|stake| total_reputation += stake.reputation.saturated_into::<u128>())
-					.count() as u128;
-				let cap = T::RevardCap::get(stake_count as u32);
-				let mut full =
+				let total_stake = Stakes::<T, I>::iter_values()
+					.map(|s| s.staked.saturated_into::<u128>())
+					.sum::<u128>();
+				let budget =
 					T::Currency::total_balance(&Self::budget_account_id()).saturated_into::<u128>();
-				let budget = full.min(cap);
-				let reward_budget = U256::from(budget) *
-					U256::from(T::ReputationRewardFactor::get()) /
-					U256::from(256);
-				let base_budget = budget - reward_budget.saturated_into::<u128>();
-				let base_reward = base_budget / stake_count;
 
 				let budget_account = Self::budget_account_id();
-				let treasury = Self::account_id();
 
 				for stake in Stakes::<T, I>::iter_values() {
-					let reputation_reward = U256::from(reward_budget) *
-						U256::from(stake.reputation.saturated_into::<u128>()) /
-						U256::from(total_reputation);
-					let reward = base_reward + u128::try_from(reputation_reward).unwrap();
+					let reward = U256::from(budget) *
+						U256::from(stake.staked.saturated_into::<u128>()) /
+						U256::from(total_stake);
 					T::Currency::transfer(
 						&budget_account,
 						&stake.owner,
-						reward.saturated_into(),
+						u128::try_from(reward).unwrap().saturated_into(),
 						ExistenceRequirement::AllowDeath,
 					)
 					.unwrap();
-					full -= reward;
 				}
-
-				T::Currency::transfer(
-					&budget_account,
-					&treasury,
-					full.saturated_into(),
-					ExistenceRequirement::AllowDeath,
-				)
-				.unwrap();
 			}
 
 			Weight::default()
@@ -336,6 +252,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
 			let treasury = Self::account_id();
+			let staked = staked.max(T::MandatoryStake::get());
 
 			// transfer stake money from the caller to the treasury account of this pallet
 			T::Currency::transfer(&owner, &treasury, staked, ExistenceRequirement::AllowDeath)?;
@@ -343,10 +260,10 @@ pub mod pallet {
 			let stake = Stake::<T, I> {
 				staked,
 				owner,
-				reputation: Self::calc_initial_reputation(staked),
 				frozen_until: frame_system::Pallet::<T>::block_number() +
 					T::StakePeriodBlocks::get(),
-				addr,
+				protected_until: frame_system::Pallet::<T>::block_number() +
+					T::ProtectionPeriodBlocks::get(),
 				enc,
 			};
 
@@ -361,61 +278,43 @@ pub mod pallet {
 
 		#[pallet::weight(1000000000000)]
 		#[pallet::call_index(1)]
-		pub fn transfer_reputation(
-			origin: OriginFor<T>,
-			from: NodeIdentity,
-			to: NodeIdentity,
-			amount: ReputationOf<T, I>,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let mut from_stake = Stakes::<T, I>::get(from).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(from_stake.owner == sender, Error::<T, I>::NotOwner);
-			ensure!(from_stake.reputation >= amount, Error::<T, I>::NotEnoughReputation);
-
-			let mut to_stake = Stakes::<T, I>::get(to).ok_or(Error::<T, I>::NoSuchStake)?;
-			to_stake.reputation += amount;
-			from_stake.reputation -= amount;
-
-			Stakes::<T, I>::insert(from, &from_stake);
-			Stakes::<T, I>::insert(to, &to_stake);
-
-			Self::deposit_event(Event::ReputationTransfered { from, to, amount });
-
-			Ok(())
-		}
-
-		#[pallet::weight(1000000000000)]
-		#[pallet::call_index(2)]
-		pub fn burn_reputation(
+		pub fn vote(
 			origin: OriginFor<T>,
 			source: NodeIdentity,
 			target: NodeIdentity,
-			amount: ReputationOf<T, I>,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let mut source_stake = Stakes::<T, I>::get(source).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(source_stake.owner == sender, Error::<T, I>::NotOwner);
-			ensure!(source_stake.reputation >= amount, Error::<T, I>::NotEnoughReputation);
+			_ = Self::ensure_stake_owner(source, origin)?;
 
-			let mut target_stake = Stakes::<T, I>::get(target).ok_or(Error::<T, I>::NoSuchStake)?;
-			target_stake.reputation -= amount;
-			source_stake.reputation -= amount;
+			ensure!(source != target, Error::<T, I>::CannotVoteForSelf);
 
-			ReputationFreezes::<T, I>::mutate(source, |frozen| {
-				let frosen = frozen.get_or_insert(FrozenReputation::<T, I> {
-					reputation: ReputationOf::<T, I>::default(),
-					frozen_until: BlockNumberFor::<T>::default(),
-				});
+			Votes::<T, I>::try_mutate(target, |votes_slot| {
+				let votes = votes_slot.get_or_insert_with(Default::default);
+				ensure!(!votes.contains(&source), Error::<T, I>::AlreadyClaimed);
 
-				frosen.reputation += amount;
-				frosen.frozen_until =
-					frame_system::Pallet::<T>::block_number() + T::StakePeriodBlocks::get();
-			});
+				if votes.len() == Stakes::<T, I>::iter().count() / 2 {
+					votes_slot.take();
+					let to_burn = Self::slash_amount();
+					Stakes::<T, I>::try_mutate(target, |stake_slot| {
+						let stake = stake_slot.as_mut().ok_or(Error::<T, I>::NoSuchStake)?;
+						ensure!(
+							stake.protected_until <= frame_system::Pallet::<T>::block_number(),
+							Error::<T, I>::RecentlySlashed
+						);
+						stake.staked -= to_burn;
+						if stake.staked < T::MandatoryStake::get() {
+							stake_slot.take();
+							Self::deposit_event(Event::Reclaimed { identity: target });
+						}
+						DispatchResult::Ok(())
+					})?;
+				} else {
+					votes.push(source);
+				}
 
-			Stakes::<T, I>::insert(source, &source_stake);
-			Stakes::<T, I>::insert(target, &target_stake);
+				DispatchResult::Ok(())
+			})?;
 
-			Self::deposit_event(Event::ReputationBurned { source, target, amount });
+			Self::deposit_event(Event::Voted { source, target });
 
 			Ok(())
 		}
@@ -427,23 +326,16 @@ pub mod pallet {
 			identity: NodeIdentity,
 			addr: NodeAddress,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let mut stake = Stakes::<T, I>::get(identity).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(stake.owner == sender, Error::<T, I>::NotOwner);
-
-			stake.addr = addr;
-			Stakes::<T, I>::insert(identity, &stake);
+			Self::ensure_stake_owner(identity, origin)?;
+			Addresses::<T, I>::insert(identity, addr);
 			Self::deposit_event(Event::AddrChanged { identity, addr });
-
 			Ok(())
 		}
 
 		#[pallet::weight(1000000000000)]
 		#[pallet::call_index(4)]
 		pub fn reclaim(origin: OriginFor<T>, identity: NodeIdentity) -> DispatchResult {
-			let receiver = ensure_signed(origin)?;
-			let stake = Stakes::<T, I>::get(identity).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(stake.owner == receiver, Error::<T, I>::NotOwner);
+			let (owner, stake) = Self::ensure_stake_owner(identity, origin)?;
 			ensure!(
 				stake.frozen_until <= frame_system::Pallet::<T>::block_number(),
 				Error::<T, I>::StakeIsLocked
@@ -457,7 +349,7 @@ pub mod pallet {
 			let treasury = Self::account_id();
 			T::Currency::transfer(
 				&treasury,
-				&receiver,
+				&owner,
 				stake.staked,
 				ExistenceRequirement::AllowDeath,
 			)?;
@@ -465,33 +357,6 @@ pub mod pallet {
 			Stakes::<T, I>::remove(identity);
 
 			Self::deposit_event(Event::Reclaimed { identity });
-
-			Ok(())
-		}
-
-		#[pallet::weight(1000000000000)]
-		#[pallet::call_index(5)]
-		pub fn reclaim_reputation(origin: OriginFor<T>, identity: NodeIdentity) -> DispatchResult {
-			let receiver = ensure_signed(origin)?;
-			let stake = Stakes::<T, I>::get(identity).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(stake.owner == receiver, Error::<T, I>::NotOwner);
-			ensure!(
-				stake.frozen_until <= frame_system::Pallet::<T>::block_number(),
-				Error::<T, I>::StakeIsLocked
-			);
-
-			let frozen =
-				ReputationFreezes::<T, I>::get(identity).ok_or(Error::<T, I>::NoSuchStake)?;
-			ensure!(
-				frozen.frozen_until <= frame_system::Pallet::<T>::block_number(),
-				Error::<T, I>::StakeIsLocked
-			);
-			T::Currency::transfer(
-				&Self::account_id(),
-				&receiver,
-				frozen.reputation,
-				ExistenceRequirement::AllowDeath,
-			)?;
 
 			Ok(())
 		}

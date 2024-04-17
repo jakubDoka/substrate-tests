@@ -4597,7 +4597,6 @@ dependencies = [
  "sc-offchain",
  "sc-rpc-api",
  "sc-service",
- "sc-statement-store",
  "sc-telemetry",
  "sc-transaction-pool",
  "sc-transaction-pool-api",
@@ -4633,6 +4632,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
+ "pallet-lightning",
  "pallet-multisig",
  "pallet-node-staker",
  "pallet-sudo",
@@ -4902,6 +4902,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-lightning"
+version = "0.0.1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "primitive-types",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-multisig"
 version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-v1.10.0#7049c3c98836b3e9253f6aaa69b6bf3d622e3962"
@@ -4924,14 +4941,11 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "pallet-aura",
  "pallet-balances",
- "pallet-grandpa",
  "pallet-timestamp",
  "parity-scale-codec",
  "primitive-types",
  "scale-info",
- "sp-consensus-grandpa",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -7229,25 +7243,6 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "sp-core",
-]
-
-[[package]]
-name = "sc-statement-store"
-version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-v1.10.0#7049c3c98836b3e9253f6aaa69b6bf3d622e3962"
-dependencies = [
- "log",
- "parity-db",
- "parking_lot 0.12.1",
- "sc-client-api",
- "sc-keystore",
- "sp-api",
- "sp-blockchain",
- "sp-core",
- "sp-runtime",
- "sp-statement-store",
- "substrate-prometheus-endpoint",
- "tokio",
 ]
 
 [[package]]

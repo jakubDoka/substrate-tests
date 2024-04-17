@@ -47,6 +47,7 @@ pallet-transaction-payment-rpc-runtime-api = { default-features = false, git = "
 pallet-node-staker = { default-features = false, path = "../pallets/node-staker" }
 pallet-sudo-authorities = { default-features = false, path = "../pallets/sudo-authorities" }
 pallet-user-manager = { default-features = false, path = "../pallets/user-manager" }
+pallet-lightning = { default-features = false, path = "../pallets/lightning" }
 
 # Substrate Primitives
 sp-api = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-v1.10.0" }

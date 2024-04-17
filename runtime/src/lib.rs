@@ -15,7 +15,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, ExtrinsicInclusionMode, MultiSignature,
+	ApplyExtrinsicResult, ExtrinsicInclusionMode, MultiSignature, MultiSigner,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -200,31 +200,19 @@ parameter_types! {
 	pub const ChatBudgetPalletId: PalletIdStruct = PalletIdStruct(*b"py/chatx");
 	pub const SateliteBudgetPalletId: PalletIdStruct = PalletIdStruct(*b"py/satlt");
 
+	pub const MandatoryStake: Balance = 100 * UNIT;
+	pub const ProtectionPeriodBlocks: u32 = 60 * 60 * 24 * 3 / 6;
 	pub const SlashFactor: u8 = 13;
-	pub const SlashAreaFactor: u8 = 64;
-	pub const ReputationRewardFactor: u8 = 64;
-	pub const ReputationIncomeFactor: u8 = 8;
-	pub const StakePeriodBlocks: u32 = 60 * 60 * 24 * 7 / 6;
-	pub const ReputationIncomePeriodBlocks: u32 = 60 * 60 * 24 / 6;
-}
-
-pub enum RewardCap {}
-impl pallet_node_staker::RewardCap for RewardCap {
-	fn get(node_count: u32) -> u128 {
-		1_000_000_000_000_000_000 * (node_count * node_count.ilog2()) as u128
-	}
+	pub const StakePeriodBlocks: u32 = 60 * 60 * 24 * 30 / 6;
 }
 
 impl pallet_node_staker::Config<Chat> for Runtime {
 	type PalletId = PalletId;
 	type BudgetPalletId = ChatBudgetPalletId;
+	type MandatoryStake = MandatoryStake;
 	type SlashFactor = SlashFactor;
-	type SlashAreaFactor = SlashAreaFactor;
-	type ReputationIncomeFactor = ReputationIncomeFactor;
-	type ReputationRewardFactor = ReputationRewardFactor;
+	type ProtectionPeriodBlocks = ProtectionPeriodBlocks;
 	type StakePeriodBlocks = StakePeriodBlocks;
-	type ReputationIncomePeriodBlocks = ReputationIncomePeriodBlocks;
-	type RevardCap = RewardCap;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 }
@@ -232,15 +220,24 @@ impl pallet_node_staker::Config<Chat> for Runtime {
 impl pallet_node_staker::Config<Satelite> for Runtime {
 	type PalletId = PalletId;
 	type BudgetPalletId = SateliteBudgetPalletId;
+	type MandatoryStake = MandatoryStake;
 	type SlashFactor = SlashFactor;
-	type SlashAreaFactor = SlashAreaFactor;
-	type ReputationIncomeFactor = ReputationIncomeFactor;
-	type ReputationRewardFactor = ReputationRewardFactor;
+	type ProtectionPeriodBlocks = ProtectionPeriodBlocks;
 	type StakePeriodBlocks = StakePeriodBlocks;
-	type ReputationIncomePeriodBlocks = ReputationIncomePeriodBlocks;
-	type RevardCap = RewardCap;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+}
+
+parameter_types! {
+	pub const LightningPalletId: PalletIdStruct = PalletIdStruct(*b"py/light");
+}
+
+impl pallet_lightning::Config for Runtime {
+	type PalletId = LightningPalletId;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Public = MultiSigner;
+	type Signature = Signature;
 }
 
 impl pallet_user_manager::Config for Runtime {}
@@ -346,6 +343,7 @@ construct_runtime!(
 		SudoAuthorities: pallet_sudo_authorities,
 		UserManager: pallet_user_manager,
 		Multisig: pallet_multisig,
+		Lightning: pallet_lightning,
 	}
 );
 
