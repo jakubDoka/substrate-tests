@@ -270,6 +270,7 @@ pub mod pallet {
 			// prevent caller from joining again
 			ensure!(!Stakes::<T, I>::contains_key(identity), Error::<T, I>::AlreadyJoined);
 			Stakes::<T, I>::insert(identity, stake);
+			Addresses::<T, I>::insert(identity, addr);
 
 			Self::deposit_event(Event::Joined { addr, identity });
 
@@ -355,6 +356,7 @@ pub mod pallet {
 			)?;
 
 			Stakes::<T, I>::remove(identity);
+			Addresses::<T, I>::remove(identity);
 
 			Self::deposit_event(Event::Reclaimed { identity });
 
